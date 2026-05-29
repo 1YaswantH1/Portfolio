@@ -1,0 +1,101 @@
+.skills-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    height: 450px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.skills-column {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+    transform: translateZ(0);
+    /* GPU layer — no distortion */
+}
+
+.skill-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    /* ← margin, NOT gap on the column */
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+    /* prevents items from collapsing */
+    transition: transform 0.3s;
+}
+
+.skill-item:hover {
+    transform: translateY(-4px);
+}
+
+.skill-icon {
+    font-size: 1.8rem;
+}
+
+.scroll-up {
+    animation: scrollUp 18s linear infinite;
+}
+
+.scroll-down {
+    animation: scrollDown 18s linear infinite;
+}
+
+.scroll-up-slow {
+    animation: scrollUp 24s linear infinite;
+}
+
+@keyframes scrollUp {
+    from {
+        transform: translateY(0) translateZ(0);
+    }
+
+    to {
+        transform: translateY(-50%) translateZ(0);
+    }
+}
+
+@keyframes scrollDown {
+    from {
+        transform: translateY(-50%) translateZ(0);
+    }
+
+    to {
+        transform: translateY(0) translateZ(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .scroll-up,
+    .scroll-down,
+    .scroll-up-slow {
+        animation: none;
+    }
+}
+
+ @keyframes scrollUp {
+     from {
+         transform: translateY(0);
+     }
+
+     to {
+         transform: translateY(-50%);
+     }
+ }
+
+ @keyframes scrollDown {
+     from {
+         transform: translateY(-50%);
+     }
+
+     to {
+         transform: translateY(0);
+     }
+ }
