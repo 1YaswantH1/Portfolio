@@ -1,15 +1,8 @@
 import "./App.css";
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 
-// Add this import at the top
 import Projects from "./components/Projects";
-import { FaLinkedin, FaEnvelope, FaPhone, FaGithub } from "react-icons/fa";
+import { FaLinkedin, FaEnvelope, FaGithub } from "react-icons/fa";
 import NavBar from "./components/NavBar";
 import BottomSectionBar from "./components/BottomSectionBar";
 import { Element } from "react-scroll";
@@ -17,185 +10,117 @@ import GlobeViewer from "./components/GlobeViewer";
 import Skills from "./components/SkillsComp";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
+const SECTIONS = ["Home", "About", "Skills", "Portfolio", "Contact"];
+const PROJECTS = ["Portfolio", "ERPPortal", "Emulator", "CollabBoard"];
+const COOLDOWN_MS = 850;
+
 const App = () => {
   const [activeSection, setActiveSection] = useState("Home");
   const [hoveredSection, setHoveredSection] = useState(null);
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
-  const [touchEnd, setTouchEnd] = useState({ x: 0, y: 0 });
 
-  // Debounce ref to prevent rapid multi-scroll
-  const scrollCooldown = useRef(false);
-  const SCROLL_COOLDOWN_MS = 800;
+  // Single source of truth — refs mirror state so event listeners are always fresh
+  const sectionRef = useRef("Home");
+  const projRef = useRef(0);
+  const locked = useRef(false);
 
-  const minSwipeDistance = 100;
+  // ── Navigate between top-level sections ───────────────────────────────────
+  const goToSection = (delta) => {
+    const idx = SECTIONS.indexOf(sectionRef.current);
+    const next = Math.min(Math.max(idx + delta, 0), SECTIONS.length - 1);
+    if (next === idx) return;
 
-  const sections = useMemo(
-    () => ["Home", "About", "Skills", "Portfolio", "Contact"],
-    []
-  );
-  const projects = useMemo(
-    () => ["Portfolio", "Emulator", "CollabBoard", "ERPPortal"],
-    []
-  );
+    // Reset carousel when leaving / re-entering Portfolio
+    projRef.current = 0;
+    setCurrentProjectIndex(0);
+    const wrapper = document.getElementById("slides-wrapper");
+    if (wrapper) wrapper.style.transform = "translateX(0)";
 
-  // ─── REPLACE everything from the imports down to the return() in your App.jsx ───
-  // Only the hooks/logic section is shown here — keep your JSX return() unchanged.
+    document.getElementById(SECTIONS[next])?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  // 1. FIXED goToProject — defined with useCallback so it's stable in useEffect deps
-  const goToProject = useCallback((direction) => {
-    const next = currentProjectIndex + direction;
-    if (next < 0 || next >= projects.length) return;
+  // ── Navigate carousel slides ───────────────────────────────────────────────
+  const goToProject = (delta) => {
+    const next = projRef.current + delta;
+    if (next < 0 || next >= PROJECTS.length) return;
+    projRef.current = next;
     setCurrentProjectIndex(next);
     const wrapper = document.getElementById("slides-wrapper");
-    if (wrapper) {
-      wrapper.dataset.index = next;
-      wrapper.style.transform = `translateX(-${next * 100}vw)`;
-    }
-  }, [currentProjectIndex, projects.length]);
+    if (wrapper) wrapper.style.transform = `translateX(-${next * 100}vw)`;
+  };
 
-  // 2. FIXED scrollToSection — unchanged from yours, but shown for context
-  const scrollToSection = useCallback((direction) => {
-    const currentIndex = sections.findIndex(section => section === activeSection);
-    let nextIndex = currentIndex + direction;
-    if (nextIndex < 0) nextIndex = 0;
-    if (nextIndex >= sections.length) nextIndex = sections.length - 1;
-    setCurrentProjectIndex(0);
-    // Also reset the slide wrapper so it snaps back to slide 0 when re-entering Portfolio
-    const wrapper = document.getElementById("slides-wrapper");
-    if (wrapper) {
-      wrapper.dataset.index = 0;
-      wrapper.style.transform = `translateX(0)`;
-    }
-    document.getElementById(sections[nextIndex])?.scrollIntoView({ behavior: "smooth" });
-  }, [activeSection, sections]);
-
-  // 3. FIXED scrollToProject — directly sets transform, no scrollTo()
-  const scrollToProject = useCallback((direction) => {
-    const newIndex = currentProjectIndex + direction;
-    if (newIndex < 0 || newIndex >= projects.length) return;
-    setCurrentProjectIndex(newIndex);
-    const wrapper = document.getElementById("slides-wrapper");
-    if (wrapper) {
-      wrapper.dataset.index = newIndex;
-      wrapper.style.transform = `translateX(-${newIndex * 100}vw)`;
-    }
-  }, [currentProjectIndex, projects.length]);
-
-  // 4. FIXED onWheel — key fix: boundary checks use >= not ===
-  // so the FIRST scroll at boundary goes to next section, not a no-op
+  // ── One scroll/swipe = one step ───────────────────────────────────────────
   useEffect(() => {
-    const onWheel = (event) => {
-      event.preventDefault();
-      if (scrollCooldown.current) return;
-      scrollCooldown.current = true;
-      setTimeout(() => { scrollCooldown.current = false; }, SCROLL_COOLDOWN_MS);
+    const handle = (scrollDown) => {
+      if (locked.current) return;
+      locked.current = true;
+      setTimeout(() => { locked.current = false; }, COOLDOWN_MS);
 
-      if (activeSection === "Portfolio") {
-        if (event.deltaY < 0 && currentProjectIndex <= 0) {
-        // At first slide, scroll up → go to previous section (Skills)
-          scrollToSection(-1);
-        } else if (event.deltaY > 0 && currentProjectIndex >= projects.length - 1) {
-          // At last slide, scroll down → go to next section (Contact)
-          scrollToSection(1);
-        } else if (event.deltaY < 0) {
-          scrollToProject(-1);
-        } else if (event.deltaY > 0) {
-          scrollToProject(1);
-        }
+      if (sectionRef.current === "Portfolio") {
+        if (scrollDown && projRef.current < PROJECTS.length - 1) goToProject(1);
+        else if (!scrollDown && projRef.current > 0) goToProject(-1);
+        else if (scrollDown) goToSection(1);
+        else goToSection(-1);
       } else {
-        if (event.deltaY > 0) scrollToSection(1);
-        else scrollToSection(-1);
+        goToSection(scrollDown ? 1 : -1);
       }
     };
 
+    const onWheel = (e) => {
+      e.preventDefault();
+      handle(e.deltaY > 0);
+    };
+
+    // Touch
+    let tx = 0, ty = 0;
     const onTouchStart = (e) => {
-      setTouchEnd({ x: 0, y: 0 });
-      setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+      tx = e.targetTouches[0].clientX;
+      ty = e.targetTouches[0].clientY;
     };
-
-    const onTouchMove = (e) => {
-      setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
-    };
-
-    const onTouchEnd = () => {
-      if (!touchStart.x || !touchStart.y || !touchEnd.x || !touchEnd.y) return;
-      if (scrollCooldown.current) return;
-
-      const distanceX = touchStart.x - touchEnd.x;
-      const distanceY = touchStart.y - touchEnd.y;
-      const isHorizontal = Math.abs(distanceX) > Math.abs(distanceY);
-
-      scrollCooldown.current = true;
-      setTimeout(() => { scrollCooldown.current = false; }, SCROLL_COOLDOWN_MS);
-
-      if (isHorizontal && activeSection === "Portfolio") {
-        if (distanceX > minSwipeDistance) {
-          if (currentProjectIndex >= projects.length - 1) scrollToSection(1);
-          else scrollToProject(1);
-        } else if (distanceX < -minSwipeDistance) {
-          if (currentProjectIndex <= 0) scrollToSection(-1);
-          else scrollToProject(-1);
-        }
+    const onTouchEnd = (e) => {
+      const dx = tx - e.changedTouches[0].clientX;
+      const dy = ty - e.changedTouches[0].clientY;
+      if (Math.abs(dx) < 50 && Math.abs(dy) < 50) return; // too small
+      if (sectionRef.current === "Portfolio" && Math.abs(dx) > Math.abs(dy)) {
+        handle(dx > 0); // horizontal swipe on projects
       } else {
-        if (distanceY > minSwipeDistance) scrollToSection(1);
-        else if (distanceY < -minSwipeDistance) scrollToSection(-1);
+        handle(dy > 0); // vertical swipe anywhere
       }
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd);
-
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
     };
-  }, [
-    activeSection,
-    scrollToSection,
-    scrollToProject,
-    currentProjectIndex,
-    projects.length,
-    touchStart.x, touchStart.y,
-    touchEnd.x, touchEnd.y,
-  ]);
-  const handleSidebarClick = (section) => {
-    document.getElementById(section).scrollIntoView({ behavior: "smooth" });
-  };
+  }, []); // ← empty: handle() closes over refs, never stale
 
+  // ── Track active section via IntersectionObserver ─────────────────────────
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            sectionRef.current = entry.target.id;
             setActiveSection(entry.target.id);
           }
         });
       },
       { threshold: 0.5 }
     );
-
-    const sectionsToObserve = [
-      "Home",
-      "About",
-      "Skills",
-      "Portfolio",
-      "Contact",
-    ];
-
-    sectionsToObserve.forEach((section) => {
-      const element = document.getElementById(section);
-      if (element) observer.observe(element);
+    SECTIONS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
     });
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
+
+  const handleSidebarClick = (section) => {
+    document.getElementById(section)?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="App">
@@ -203,23 +128,20 @@ const App = () => {
 
       <div className="sidebar">
         <div className="scrollbar">
-          {sections.map((section, index) => (
+          {SECTIONS.map((section, index) => (
             <div
               key={index}
-              className={`scrollbar-section ${activeSection === section ? "active" : ""
-                }`}
+              className={`scrollbar-section ${activeSection === section ? "active" : ""}`}
               onClick={() => handleSidebarClick(section)}
               onMouseEnter={() => setHoveredSection(section)}
               onMouseLeave={() => setHoveredSection(null)}
               style={{
                 backgroundColor:
                   activeSection === section || hoveredSection === section
-                    ? "#E5E5EA"
-                    : "transparent",
+                    ? "#E5E5EA" : "transparent",
                 color:
                   activeSection === section || hoveredSection === section
-                    ? "#141416"
-                    : "#E5E5EA",
+                    ? "#141416" : "#E5E5EA",
               }}
             >
               {`0${index}`}
@@ -232,11 +154,14 @@ const App = () => {
       <Element name="Home" className="section Home" id="Home">
         <div className="text">
           <h1>
-            Full-Stack Software {" "}
+            Full-Stack Software{" "}
             <span style={{ display: "block" }}>Developer</span>
           </h1>
           <p>
-            Creating smooth digital experiences end-to-end. I have experience building user-friendly front-ends,efficient back-ends, and AI-based solutions. Whatever the need, from web development to Data science and Machine Learning, I can make it happen.
+            Creating smooth digital experiences end-to-end. I have experience
+            building user-friendly front-ends, efficient back-ends, and
+            AI-based solutions. Whatever the need, from web development to Data
+            science and Machine Learning, I can make it happen.
           </p>
         </div>
         <div className="model">
@@ -254,36 +179,31 @@ const App = () => {
         <div className="text">
           <h1>👋 Hi, I'm Yaswanth!</h1>
           <p>
-            Passionate about <strong>full-stack development, AI, and data science</strong>,
-            I enjoy building scalable web applications and intelligent solutions that solve
-            real-world problems. As a graduate with a{" "}
-            <strong>B.E. in Artificial Intelligence & Data Science</strong> from
-            CBIT Hyderabad, I combine technical expertise with creativity to transform
-            ideas into impactful digital experiences.
-            <br />
-            <br />
+            Passionate about{" "}
+            <strong>full-stack development, AI, and data science</strong>, I
+            enjoy building scalable web applications and intelligent solutions
+            that solve real-world problems. As a graduate with a{" "}
+            <strong>B.E. in Artificial Intelligence & Data Science</strong>{" "}
+            from CBIT Hyderabad, I combine technical expertise with creativity
+            to transform ideas into impactful digital experiences.
+            <br /><br />
             My experience spans <strong>front-end development</strong>,
-            <strong> back-end engineering</strong>, and
-            <strong> machine learning</strong>, enabling me to build complete
-            end-to-end solutions. I am passionate about writing clean, efficient code
-            and creating applications that are both user-friendly and performance-driven.
-            <br />
-            <br />
+            <strong> back-end engineering</strong>, and{" "}
+            <strong>machine learning</strong>, enabling me to build complete
+            end-to-end solutions. I am passionate about writing clean,
+            efficient code and creating applications that are both
+            user-friendly and performance-driven.
+            <br /><br />
             When I'm not coding, you can find me{" "}
             <strong>
               solving LeetCode problems, exploring emerging AI technologies,
               building side projects, or experimenting with Docker and Kubernetes
-            </strong>
-            .
+            </strong>.
           </p>
         </div>
         <div className="model">
           <div className="image-container">
-            <img
-              className="circle-bg"
-              src="blackBack.png"
-              alt="Background circle"
-            />
+            <img className="circle-bg" src="blackBack.png" alt="Background circle" />
             <img className="headshot" src="headshot.png" alt="Yaswanth" />
           </div>
         </div>
@@ -298,38 +218,25 @@ const App = () => {
             <strong>Artificial Intelligence</strong> and{" "}
             <strong>Data Science</strong>, passionate about building scalable,
             user-centric applications.
-
-            <br />
-            <br />
-
+            <br /><br />
             My technical stack includes <strong>React.js</strong>,{" "}
             <strong>Node.js</strong>, <strong>Express.js</strong>,{" "}
             <strong>MongoDB</strong>, <strong>MySQL</strong>,{" "}
             <strong>Python</strong>, and <strong>Java</strong>. I have also
             developed machine learning and AI-powered solutions.
-
-            <br />
-            <br />
-
+            <br /><br />
             I have experience with <strong>Docker</strong> and{" "}
-            <strong>Kubernetes</strong> for containerized deployment and cloud-ready
-            applications.
-
-            <br />
-            <br />
-
+            <strong>Kubernetes</strong> for containerized deployment and
+            cloud-ready applications.
+            <br /><br />
             I enjoy solving challenging problems and have completed{" "}
             <strong>300+ LeetCode problems</strong>.
-
-            <br />
-            <br />
-
+            <br /><br />
             Explore more on my{" "}
             <a
               href="https://github.com/1YaswantH1"
               style={{ color: "#FF9907", textDecoration: "none" }}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
             >
               GitHub
             </a>.
@@ -339,11 +246,12 @@ const App = () => {
           <Skills />
         </div>
       </Element>
-      {/* ── PROJECTS SECTION ── */}
+
+      {/* ── PROJECTS ── */}
       <Projects
         currentProjectIndex={currentProjectIndex}
         setCurrentProjectIndex={setCurrentProjectIndex}
-        projects={projects}
+        projects={PROJECTS}
         goToProject={goToProject}
       />
 
@@ -356,46 +264,33 @@ const App = () => {
             free to reach out! I'm always open to collaborating, building
             innovative solutions, and exploring new challenges in tech.
           </p>
-
           <p>
-            <FaEnvelope
-              style={{ marginRight: "5px", position: "relative", top: "2px" }}
-            />{" "}
+            <FaEnvelope style={{ marginRight: "5px", position: "relative", top: "2px" }} />{" "}
             Email:{" "}
-            <a
-              href="mailto:chintayaswanth99@gmail.com"
-              style={{ color: "#FF9907", textDecoration: "none" }}
-            >
+            <a href="mailto:chintayaswanth99@gmail.com" style={{ color: "#FF9907", textDecoration: "none" }}>
               chintayaswanth99@gmail.com
-            </a>{" "}
+            </a>
             <br />
-            <FaLinkedin
-              style={{ marginRight: "5px", position: "relative", top: "2px" }}
-            />{" "}
+            <FaLinkedin style={{ marginRight: "5px", position: "relative", top: "2px" }} />{" "}
             LinkedIn:{" "}
             <a
               href="https://linkedin.com/in/yaswanth-varma-chinta-a73100262"
               style={{ color: "#FF9907", textDecoration: "none" }}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
             >
               Yaswanth Varma Chinta
-            </a>{" "}
+            </a>
             <br />
-            <FaGithub
-              style={{ marginRight: "5px", position: "relative", top: "2px" }}
-            />{" "}
+            <FaGithub style={{ marginRight: "5px", position: "relative", top: "2px" }} />{" "}
             GitHub:{" "}
             <a
               href="https://github.com/1YaswantH1"
               style={{ color: "#FF9907", textDecoration: "none" }}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
             >
               1YaswantH1
             </a>
           </p>
-
           <p>Looking forward to connecting!</p>
         </div>
         <div className="model">
@@ -403,7 +298,7 @@ const App = () => {
         </div>
       </Element>
 
-      <BottomSectionBar sections={sections} currentSection={activeSection} />
+      <BottomSectionBar sections={SECTIONS} currentSection={activeSection} />
     </div>
   );
 };

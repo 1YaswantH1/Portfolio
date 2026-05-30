@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import "../css/Projects.css";
 import ComboScene from "./ComboScene";
 
@@ -57,37 +57,39 @@ const projectSlides = [
     },
 ];
 
-const AUTO_ADVANCE_MS = 5000;
+const AUTO_ADVANCE_MS = 10000000;
 
 const Projects = ({ currentProjectIndex, projects, goToProject }) => {
     const autoTimer = useRef(null);
-    // Ref mirror of currentProjectIndex so the interval always sees fresh value
-    const indexRef = useRef(currentProjectIndex);
 
-    // Keep ref in sync
+    // Drive the CSS transform whenever the index changes
     useEffect(() => {
-        indexRef.current = currentProjectIndex;
-        // Drive the CSS transform
         const wrapper = document.getElementById("slides-wrapper");
         if (wrapper) wrapper.style.transform = `translateX(-${currentProjectIndex * 100}vw)`;
     }, [currentProjectIndex]);
 
-    // Auto-advance: uses goToProject(1) so App.jsx state stays in sync
-    const startAutoTimer = () => {
+    // Keep refs fresh so the interval never has stale closures
+    const goToProjectRef = useRef(goToProject);
+    useEffect(() => { goToProjectRef.current = goToProject; }, [goToProject]);
+
+    const currentIndexRef = useRef(currentProjectIndex);
+    useEffect(() => { currentIndexRef.current = currentProjectIndex; }, [currentProjectIndex]);
+
+    const startAutoTimer = useCallback(() => {
         clearInterval(autoTimer.current);
         autoTimer.current = setInterval(() => {
-            if (indexRef.current < projectSlides.length - 1) {
-                goToProject(1);   // goes through App.jsx — keeps everything in sync
-            } else {
-                goToProject(-(projectSlides.length - 1)); // wrap to slide 0
-            }
+            const idx = currentIndexRef.current;
+            const next = idx < projectSlides.length - 1 ? idx + 1 : 0;
+            // Compute delta so App.jsx receives a relative change
+            const delta = next - idx || -(projectSlides.length - 1);
+            goToProjectRef.current(delta);
         }, AUTO_ADVANCE_MS);
-    };
+    }, []);
 
     useEffect(() => {
         startAutoTimer();
         return () => clearInterval(autoTimer.current);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [startAutoTimer]);
 
     const handleNav = (dir) => {
         goToProject(dir);
