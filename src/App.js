@@ -16,12 +16,10 @@ import { Element } from "react-scroll";
 import GlobeViewer from "./components/GlobeViewer";
 import Skills from "./components/SkillsComp";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import ComboScene from "./components/ComboScene";
 
 const App = () => {
   const [activeSection, setActiveSection] = useState("Home");
   const [hoveredSection, setHoveredSection] = useState(null);
-  const projectsRef = useRef(null);
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
   const [touchEnd, setTouchEnd] = useState({ x: 0, y: 0 });
@@ -369,17 +367,6 @@ const App = () => {
               style={{ color: "#FF9907", textDecoration: "none" }}
             >
               chintayaswanth99@gmail.com
-            </a>{" "}
-            <br />
-            <FaPhone
-              style={{ marginRight: "5px", position: "relative", top: "2px" }}
-            />{" "}
-            Phone:{" "}
-            <a
-              href="tel:+917780346221"
-              style={{ color: "#FF9907", textDecoration: "none" }}
-            >
-              +91 77803 46221
             </a>{" "}
             <br />
             <FaLinkedin

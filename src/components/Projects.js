@@ -16,6 +16,21 @@ const projectSlides = [
         links: null,
     },
     {
+        id: "ERPPortal",
+        title: "CBIT ERP Portal",
+        description: (
+            <>
+                A centralized CBIT student platform with timetables, attendance,
+                results, and notice boards — all in one place.
+            </>
+        ),
+        media: <img className="proj-image" src="/images/erpportal.png" alt="CBIT ERP Portal" />,
+        links: [
+            { label: "Live Demo", href: "https://erp-cbit.vercel.app/" },
+            { label: "GitHub Repo", href: "https://github.com/1YaswantH1/Cbit-Portal-ERP" },
+        ],
+    },
+    {
         id: "Emulator",
         title: "AI Surveillance Enhancement",
         description: (
@@ -39,21 +54,6 @@ const projectSlides = [
         ),
         media: <img className="proj-image" src="/images/collabboard.png" alt="Collab Board" />,
         links: [{ label: "GitHub Repo", href: "https://github.com/1YaswantH1/Project_Board" }],
-    },
-    {
-        id: "ERPPortal",
-        title: "CBIT ERP Portal",
-        description: (
-            <>
-                A centralized CBIT student platform with timetables, attendance,
-                results, and notice boards — all in one place.
-            </>
-        ),
-        media: <img className="proj-image" src="/images/erpportal.png" alt="CBIT ERP Portal" />,
-        links: [
-            { label: "Live Demo", href: "https://erp-cbit.vercel.app/" },
-            { label: "GitHub Repo", href: "https://github.com/1YaswantH1/Cbit-Portal-ERP" },
-        ],
     },
 ];
 
