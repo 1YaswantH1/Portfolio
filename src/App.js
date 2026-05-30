@@ -1,5 +1,5 @@
 import "./App.css";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import Projects from "./components/Projects";
 import { FaLinkedin, FaEnvelope, FaGithub } from "react-icons/fa";
