@@ -9,7 +9,6 @@ import {
   FaDocker,
   FaNodeJs,
   FaGithub,
-  FaLinux,
 } from "react-icons/fa";
 
 import {
@@ -21,7 +20,6 @@ import {
   SiTensorflow,
   SiPandas,
   SiNumpy,
-  SiMongoose,
   SiScikitlearn,
 } from "react-icons/si";
 
