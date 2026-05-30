@@ -37,47 +37,63 @@
   }
 }
 /* Horizontal Projects Container */
-.Projects {
-  position: relative;
-  overflow: hidden;
-}
-
-.projects-container {
+/* Portfolio Carousel */
+#Projects {
   display: flex;
-  flex-direction: row;
-  width: 100%;
-  height: 100vh;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scrollbar-width: none;
+  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  gap: 0;
+    height: 100vh;
+    width: 100%;
 }
 
-.projects-container::-webkit-scrollbar {
-  display: none;
-}
-
-.project-slide {
-  min-width: 100%;
-  height: 100%;
+#Projects .Inner {
+  flex: 0 0 100%;
+  width: 100%;
+  scroll-snap-align: start;
   display: flex;
   align-items: center;
   justify-content: center;
-  scroll-snap-align: start;
-  flex-shrink: 0;
+  position: relative;
 }
 
-/* Dots */
-.project-dots {
+/* Navigation Buttons */
+.project-nav {
   position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
+  bottom: 8%;
   z-index: 10;
+  display: flex;
+  gap: 15px;
 }
 
+.project-nav button {
+  background: rgba(255, 153, 7, 0.9);
+  color: #141416;
+  border: none;
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 153, 7, 0.3);
+}
+
+.project-nav button:hover {
+  background: #FF9907;
+  transform: scale(1.1);
+}
+
+.project-nav button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
 .dot {
   width: 12px;
   height: 12px;

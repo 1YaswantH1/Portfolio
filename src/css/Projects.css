@@ -1,0 +1,253 @@
+/* ═══════════════════════════════════════════════════════
+   Projects — Horizontal Carousel
+   Arrows are section-level (not inside slides) so they
+   never bleed into the right sidebar (≈60px wide, fixed right).
+═══════════════════════════════════════════════════════ */
+
+section.projects-section {
+    position: relative !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* ── Track: clips the sliding wrapper ── */
+.projects-track {
+    position: absolute !important;
+    inset: 0 !important;
+    overflow: hidden !important;
+}
+
+/* ── Sliding wrapper: all slides in a row ── */
+.projects-slides-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    height: 100% !important;
+    transition: transform 0.55s cubic-bezier(0.77, 0, 0.18, 1) !important;
+    will-change: transform !important;
+}
+
+/* ── Individual slide ── */
+.project-slide {
+    min-width: 100vw !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ── Slide content layout ── */
+.slide-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4rem !important;
+    width: 100% !important;
+    height: 100% !important;
+    /*
+      Left:  arrow(46px) + 16px gap + 6% padding
+      Right: arrow(46px) + 16px gap + sidebar(70px) + 6% padding
+      This guarantees content NEVER hides behind arrow or sidebar
+    */
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+    padding-left: calc(6% + 62px) !important;
+    padding-right: calc(6% + 132px) !important;
+    /* extra for sidebar */
+    box-sizing: border-box !important;
+}
+
+/* ── Arrows: section-level, z-index above slides ── */
+.carousel-arrow {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 30 !important;
+    /* above slide content */
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(255, 153, 7, 0.5) !important;
+    background: rgba(20, 20, 22, 0.8) !important;
+    color: #ff9907 !important;
+    font-size: 1.1rem !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(8px) !important;
+    transition: background 0.25s, border-color 0.25s, transform 0.25s !important;
+}
+
+/* Left arrow: 16px from left edge */
+.carousel-arrow--left {
+    left: 16px !important;
+}
+
+/*
+  Right arrow: must clear the sidebar.
+  Sidebar in App.jsx is fixed-right ~60px wide.
+  Place arrow at right: 76px (60px sidebar + 16px gap).
+*/
+.carousel-arrow--right {
+    right: 76px !important;
+}
+
+.carousel-arrow:hover:not(:disabled) {
+    background: rgba(255, 153, 7, 0.2) !important;
+    border-color: #ff9907 !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+.carousel-arrow:disabled {
+    opacity: 0.18 !important;
+    cursor: not-allowed !important;
+}
+
+/* ── Text block ── */
+.slide-text {
+    flex: 1 !important;
+    max-width: 520px !important;
+}
+
+.slide-index {
+    display: block !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+    color: #ff9907 !important;
+    opacity: 0.65 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.slide-text h1 {
+    font-size: 3rem !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.15 !important;
+}
+
+.slide-text p {
+    font-size: 1.05rem !important;
+    line-height: 1.85 !important;
+    color: #cfcfcf !important;
+}
+
+/* ── Links ── */
+.slide-links {
+    margin-top: 1.4rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.8rem !important;
+}
+
+.slide-link {
+    display: inline-block !important;
+    padding: 9px 20px !important;
+    border: 1.5px solid #ff9907 !important;
+    border-radius: 8px !important;
+    color: #ff9907 !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    transition: background 0.25s, color 0.25s, transform 0.2s !important;
+}
+
+.slide-link:hover {
+    background: #ff9907 !important;
+    color: #000 !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ── Media ── */
+.slide-media {
+    flex: 1 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    max-width: 580px !important;
+}
+
+.proj-image {
+    width: 100% !important;
+    max-width: 540px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45) !important;
+    transition: transform 0.3s ease !important;
+    display: block !important;
+    object-fit: cover !important;
+}
+
+.proj-image:hover {
+    transform: scale(1.03) !important;
+}
+
+/* ── Dot indicators ── */
+.projects-dots {
+    position: absolute !important;
+    bottom: 28px !important;
+    /* Centre between left edge and right sidebar */
+    left: calc(50% - 35px) !important;
+    /* 35px ≈ half sidebar offset */
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    gap: 10px !important;
+    z-index: 30 !important;
+}
+
+.dot {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: rgba(255, 153, 7, 0.3) !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: background 0.25s, transform 0.25s !important;
+}
+
+.dot--active {
+    background: #ff9907 !important;
+    transform: scale(1.45) !important;
+}
+
+.dot:hover:not(.dot--active) {
+    background: rgba(255, 153, 7, 0.6) !important;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .slide-inner {
+        flex-direction: column !important;
+        text-align: center !important;
+        padding: 90px 5% 80px !important;
+        gap: 2rem !important;
+        justify-content: center !important;
+    }
+
+    .slide-text h1 {
+        font-size: 2rem !important;
+    }
+
+    .proj-image {
+        max-width: 88% !important;
+    }
+
+    .slide-links {
+        justify-content: center !important;
+    }
+
+    .carousel-arrow--left {
+        left: 6px !important;
+    }
+
+    .carousel-arrow--right {
+        right: 6px !important;
+    }
+}

@@ -6,6 +6,9 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+
+// Add this import at the top
+import Projects from "./components/Projects";
 import { FaLinkedin, FaEnvelope, FaPhone, FaGithub } from "react-icons/fa";
 import NavBar from "./components/NavBar";
 import BottomSectionBar from "./components/BottomSectionBar";
@@ -38,94 +41,83 @@ const App = () => {
     []
   );
 
-  const scrollToSection = useCallback(
-    (direction) => {
-      const currentIndex = sections.findIndex(
-        (section) => section === activeSection
-      );
-      let nextIndex = currentIndex + direction;
+  // ─── REPLACE everything from the imports down to the return() in your App.jsx ───
+  // Only the hooks/logic section is shown here — keep your JSX return() unchanged.
 
-      if (nextIndex < 0) nextIndex = 0;
-      if (nextIndex >= sections.length) nextIndex = sections.length - 1;
+  // 1. FIXED goToProject — defined with useCallback so it's stable in useEffect deps
+  const goToProject = useCallback((direction) => {
+    const next = currentProjectIndex + direction;
+    if (next < 0 || next >= projects.length) return;
+    setCurrentProjectIndex(next);
+    const wrapper = document.getElementById("slides-wrapper");
+    if (wrapper) {
+      wrapper.dataset.index = next;
+      wrapper.style.transform = `translateX(-${next * 100}vw)`;
+    }
+  }, [currentProjectIndex, projects.length]);
 
-      setCurrentProjectIndex(0);
-      document
-        .getElementById(sections[nextIndex])
-        .scrollIntoView({ behavior: "smooth" });
-    },
-    [activeSection, sections]
-  );
+  // 2. FIXED scrollToSection — unchanged from yours, but shown for context
+  const scrollToSection = useCallback((direction) => {
+    const currentIndex = sections.findIndex(section => section === activeSection);
+    let nextIndex = currentIndex + direction;
+    if (nextIndex < 0) nextIndex = 0;
+    if (nextIndex >= sections.length) nextIndex = sections.length - 1;
+    setCurrentProjectIndex(0);
+    // Also reset the slide wrapper so it snaps back to slide 0 when re-entering Portfolio
+    const wrapper = document.getElementById("slides-wrapper");
+    if (wrapper) {
+      wrapper.dataset.index = 0;
+      wrapper.style.transform = `translateX(0)`;
+    }
+    document.getElementById(sections[nextIndex])?.scrollIntoView({ behavior: "smooth" });
+  }, [activeSection, sections]);
 
-  const scrollToProject = useCallback(
-    (direction) => {
-      const container = document.getElementById("Projects");
-      if (container) {
-        const containerWidth = container.offsetWidth;
-        const scrollPosition = container.scrollLeft;
-        const newIndex = currentProjectIndex + direction;
+  // 3. FIXED scrollToProject — directly sets transform, no scrollTo()
+  const scrollToProject = useCallback((direction) => {
+    const newIndex = currentProjectIndex + direction;
+    if (newIndex < 0 || newIndex >= projects.length) return;
+    setCurrentProjectIndex(newIndex);
+    const wrapper = document.getElementById("slides-wrapper");
+    if (wrapper) {
+      wrapper.dataset.index = newIndex;
+      wrapper.style.transform = `translateX(-${newIndex * 100}vw)`;
+    }
+  }, [currentProjectIndex, projects.length]);
 
-        if (newIndex >= 0 && newIndex < projects.length) {
-          setCurrentProjectIndex(newIndex);
-
-          const scrollAmount = direction * containerWidth;
-          container.scrollTo({
-            left: scrollPosition + scrollAmount,
-            behavior: "smooth",
-          });
-        }
-      }
-    },
-    [currentProjectIndex, projects.length]
-  );
-
+  // 4. FIXED onWheel — key fix: boundary checks use >= not ===
+  // so the FIRST scroll at boundary goes to next section, not a no-op
   useEffect(() => {
     const onWheel = (event) => {
       event.preventDefault();
-
-      // Debounce: ignore scroll events during cooldown
       if (scrollCooldown.current) return;
       scrollCooldown.current = true;
-      setTimeout(() => {
-        scrollCooldown.current = false;
-      }, SCROLL_COOLDOWN_MS);
+      setTimeout(() => { scrollCooldown.current = false; }, SCROLL_COOLDOWN_MS);
 
       if (activeSection === "Portfolio") {
-        if (currentProjectIndex === 0 && event.deltaY < 0) {
+        if (event.deltaY < 0 && currentProjectIndex <= 0) {
+        // At first slide, scroll up → go to previous section (Skills)
           scrollToSection(-1);
-        } else if (
-          currentProjectIndex === projects.length - 1 &&
-          event.deltaY > 0
-        ) {
+        } else if (event.deltaY > 0 && currentProjectIndex >= projects.length - 1) {
+          // At last slide, scroll down → go to next section (Contact)
           scrollToSection(1);
-        } else {
-          if (event.deltaY < 0) {
-            scrollToProject(-1);
-          } else if (event.deltaY > 0) {
-            scrollToProject(1);
-          }
+        } else if (event.deltaY < 0) {
+          scrollToProject(-1);
+        } else if (event.deltaY > 0) {
+          scrollToProject(1);
         }
       } else {
-        if (event.deltaY > 0) {
-          scrollToSection(1);
-        } else {
-          scrollToSection(-1);
-        }
+        if (event.deltaY > 0) scrollToSection(1);
+        else scrollToSection(-1);
       }
     };
 
     const onTouchStart = (e) => {
       setTouchEnd({ x: 0, y: 0 });
-      setTouchStart({
-        x: e.targetTouches[0].clientX,
-        y: e.targetTouches[0].clientY,
-      });
+      setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
     };
 
     const onTouchMove = (e) => {
-      setTouchEnd({
-        x: e.targetTouches[0].clientX,
-        y: e.targetTouches[0].clientY,
-      });
+      setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
     };
 
     const onTouchEnd = () => {
@@ -134,35 +126,22 @@ const App = () => {
 
       const distanceX = touchStart.x - touchEnd.x;
       const distanceY = touchStart.y - touchEnd.y;
-
-      const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-      const isVerticalSwipe = !isHorizontalSwipe;
+      const isHorizontal = Math.abs(distanceX) > Math.abs(distanceY);
 
       scrollCooldown.current = true;
-      setTimeout(() => {
-        scrollCooldown.current = false;
-      }, SCROLL_COOLDOWN_MS);
+      setTimeout(() => { scrollCooldown.current = false; }, SCROLL_COOLDOWN_MS);
 
-      if (isHorizontalSwipe && activeSection === "Portfolio") {
+      if (isHorizontal && activeSection === "Portfolio") {
         if (distanceX > minSwipeDistance) {
-          if (currentProjectIndex === projects.length - 1) {
-            scrollToSection(1);
-          } else {
-            scrollToProject(1);
-          }
+          if (currentProjectIndex >= projects.length - 1) scrollToSection(1);
+          else scrollToProject(1);
         } else if (distanceX < -minSwipeDistance) {
-          if (currentProjectIndex === 0) {
-            scrollToSection(-1);
-          } else {
-            scrollToProject(-1);
-          }
+          if (currentProjectIndex <= 0) scrollToSection(-1);
+          else scrollToProject(-1);
         }
-      } else if (isVerticalSwipe) {
-        if (distanceY > minSwipeDistance) {
-          scrollToSection(1);
-        } else if (distanceY < -minSwipeDistance) {
-          scrollToSection(-1);
-        }
+      } else {
+        if (distanceY > minSwipeDistance) scrollToSection(1);
+        else if (distanceY < -minSwipeDistance) scrollToSection(-1);
       }
     };
 
@@ -183,12 +162,9 @@ const App = () => {
     scrollToProject,
     currentProjectIndex,
     projects.length,
-    touchStart.x,
-    touchStart.y,
-    touchEnd.x,
-    touchEnd.y,
+    touchStart.x, touchStart.y,
+    touchEnd.x, touchEnd.y,
   ]);
-
   const handleSidebarClick = (section) => {
     document.getElementById(section).scrollIntoView({ behavior: "smooth" });
   };
@@ -365,189 +341,13 @@ const App = () => {
           <Skills />
         </div>
       </Element>
-
-      {/* ── PORTFOLIO (horizontal scroll) ── */}
-      <Element
-        name="Projects"
-        className="section Projects"
-        id="Projects"
-        ref={projectsRef}
-      >
-        {/* Slide 1 – intro */}
-        <Element
-          name="Portfolio"
-          className="section Inner Portfolio"
-          id="Portfolio"
-        >
-          <div className="text">
-            <h1>Portfolio & Projects</h1>
-            <p>
-              Here are some of the projects I've worked on, showcasing my skills
-              in full-stack web development, AI/ML, and DevOps. From
-              collaborative tools to AI-powered surveillance systems, I love
-              bringing ideas to life through code. If you want to see more,
-              check out my{" "}
-              <a
-                href="https://github.com/1YaswantH1"
-                style={{ color: "#FF9907", textDecoration: "none" }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub
-              </a>
-              ! <br />
-              <button
-                className="project-button"
-                onClick={() =>
-                  document
-                    .getElementById("Emulator")
-                    .scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                AI Surveillance {">"}
-              </button>
-            </p>
-          </div>
-          <div className="model">
-            <ComboScene />
-          </div>
-        </Element>
-
-        {/* Slide 2 – AI Surveillance */}
-        <Element
-          name="Emulator"
-          className="section Inner Emulator"
-          id="Emulator"
-        >
-          <div className="text">
-            <h1>AI Surveillance Enhancement</h1>
-            <p>
-              An AI-based CCTV restoration system achieving{" "}
-              <strong>40 dB PSNR</strong> and <strong>0.95 SSIM</strong>.
-              Applied GAN-based inpainting, denoising, motion segmentation, and
-              colorization for degraded footage reconstruction. Utilized{" "}
-              <strong>VGG-19</strong> and <strong>SIFT</strong> for enhanced
-              structural and visual detail preservation.
-              <br />
-              <a
-                href="https://github.com/1YaswantH1/Surveillance_Restoration_System"
-                style={{ color: "#FF9907", textDecoration: "none" }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub Repo
-              </a>
-              <br />
-              <button
-                className="project-button"
-                onClick={() =>
-                  document
-                    .getElementById("CollabBoard")
-                    .scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                Collab Board {">"}
-              </button>
-            </p>
-          </div>
-          <div className="model">
-            <img
-              className="responsive-image"
-              src="images/surveillance.png"
-              alt="AI Surveillance Enhancement System"
-            />
-          </div>
-        </Element>
-
-        {/* Slide 3 – Collab Board */}
-        <Element
-          name="CollabBoard"
-          className="section Inner CollabBoard"
-          id="CollabBoard"
-        >
-          <div className="text">
-            <h1>Collab Board</h1>
-            <p>
-              A collaborative Kanban task management platform with real-time
-              synchronization, team communication, and deadline tracking. Built
-              with <strong>React.js, Node.js, MongoDB, Socket.io</strong>, and{" "}
-              <strong>JWT</strong> auth. Integrated FullCalendar for intelligent
-              scheduling and automated reminders.
-              <br />
-              <a
-                href="https://github.com/1YaswantH1/Project_Board"
-                style={{ color: "#FF9907", textDecoration: "none" }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub Repo
-              </a>
-              <br />
-              <button
-                className="project-button"
-                onClick={() =>
-                  document
-                    .getElementById("ERPPortal")
-                    .scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                CBIT ERP Portal {">"}
-              </button>
-            </p>
-          </div>
-          <div className="model">
-            <img
-              className="responsive-image"
-              src="images/collabboard.png"
-              alt="Collab Board"
-            />
-          </div>
-        </Element>
-
-        {/* Slide 4 – CBIT ERP Portal */}
-        <Element
-          name="ERPPortal"
-          className="section Inner ERPPortal"
-          id="ERPPortal"
-        >
-          <div className="text">
-            <h1>CBIT ERP Portal</h1>
-            <p>
-              A centralized CBIT student platform integrating ERP, placements,
-              syllabus, clubs, and academic resources in one place. Automated
-              ERP attendance retrieval using <strong>Playwright</strong>,
-              enabling subject-wise analytics. Students can calculate safe
-              bunks and minimum attendance requirements through an intuitive
-              dashboard.
-              <br />
-              <a
-                href="https://erp-cbit.vercel.app/"
-                style={{ color: "#FF9907", textDecoration: "none" }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Live Demo
-              </a>{" "}
-              |{" "}
-              <a
-                href="https://github.com/1YaswantH1/Cbit-Portal-ERP"
-                style={{ color: "#FF9907", textDecoration: "none" }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub Repo
-              </a>
-            </p>
-          </div>
-          <div className="model">
-            <img
-              className="responsive-image"
-              src="images/erpportal.png"
-              alt="CBIT ERP Portal"
-            />
-          </div>
-        </Element>
-      </Element>
+      {/* ── PROJECTS SECTION ── */}
+      <Projects
+        currentProjectIndex={currentProjectIndex}
+        setCurrentProjectIndex={setCurrentProjectIndex}
+        projects={projects}
+        goToProject={goToProject}
+      />
 
       {/* ── CONTACT ── */}
       <Element name="Contact" className="section Contact" id="Contact">

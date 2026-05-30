@@ -10,7 +10,7 @@ const RotatingGroup = ({ children, ...props }) => {
 
   useFrame((state, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.z += delta * -0.2; // Adjust rotation speed here
+      groupRef.current.rotation.z += delta * -0.2;
     }
   });
 
@@ -21,31 +21,6 @@ const RotatingGroup = ({ children, ...props }) => {
   );
 };
 
-const useDetectVisibility = (meshRef, camera) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useFrame(() => {
-    if (!camera || !meshRef.current) return;
-
-    const frustum = new THREE.Frustum();
-    const cameraViewProjectionMatrix = new THREE.Matrix4();
-
-    camera.updateMatrixWorld(); // Update camera matrix
-    camera.matrixWorldInverse.copy(camera.matrixWorld).invert(); // Get the inverse of the camera matrix
-    cameraViewProjectionMatrix.multiplyMatrices(
-      camera.projectionMatrix,
-      camera.matrixWorldInverse
-    ); // Create the camera view projection matrix
-    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix); // Update the frustum
-
-    const meshWorldPosition = new THREE.Vector3();
-    meshRef.current.getWorldPosition(meshWorldPosition);
-    setIsVisible(frustum.containsPoint(meshWorldPosition)); // Check if the mesh is within the camera's frustum
-  });
-
-  return isVisible;
-};
-
 const Pin = ({
   position,
   pinRef,
@@ -53,44 +28,21 @@ const Pin = ({
   handlePointerOut,
   updateTooltipPosition,
 }) => {
-  const { camera, scene } = useThree();
-  const [isVisible, setIsVisible] = useState(false);
-
-  const handlePointerOverInternal = (event) => {
-    if (isVisible) {
-      handlePointerOver(event);
-    }
-  };
-
-  useFrame(() => {
-    if (!camera || !pinRef.current) return;
-
-    // Check if pin is occluded by the globe
-    const pinWorldPosition = new THREE.Vector3();
-    pinRef.current.getWorldPosition(pinWorldPosition);
-
-    const direction = pinWorldPosition.clone().sub(camera.position).normalize();
-    const raycaster = new THREE.Raycaster(camera.position, direction);
-    const intersects = raycaster.intersectObject(scene, true);
-
-    setIsVisible(
-      intersects.length > 0 && intersects[0].object === pinRef.current
-    );
-  });
+  const elevatedPosition = position.map((coord) => coord * 1.04); // Slightly higher
 
   return (
     <mesh
-      position={position}
+      position={elevatedPosition}
       ref={pinRef}
-      onPointerOver={handlePointerOverInternal}
+      onPointerOver={handlePointerOver}
       onPointerMove={updateTooltipPosition}
       onPointerOut={handlePointerOut}
     >
       <sphereGeometry args={[0.05, 16, 16]} />
       <meshStandardMaterial
         color="#FF9907"
-        emissive={new THREE.Color(0xFF9907)}
-        emissiveIntensity={1} // Adjust the intensity of the emission
+        emissive="#FF9907"
+        emissiveIntensity={2}
       />
     </mesh>
   );
@@ -100,45 +52,8 @@ const GlobeViewer = ({ props, modelPath }) => {
   const { nodes, materials } = useGLTF(modelPath);
   const firstMesh = Object.values(nodes).find((node) => node.isMesh);
   const firstMaterial = Object.values(materials)[0];
-  const [globeScale, setScale] = useState(1);
 
-
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-
-      if (width <= 768) {
-        setScale(2.25);
-      } else if (width <= 1024) {
-        setScale(2.5);
-      } else {
-        setScale(3);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize(); // Set initial scale
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  firstMaterial.emissive = new THREE.Color(0x33b5e5); // Blue glow
-  firstMaterial.emissiveIntensity = 2; // Adjust brightness
-  firstMaterial.side = THREE.FrontSide;
-
-  const { ErrorBoundary, didCatch, error } = useErrorBoundary();
-
-  const to3DCoordinates = (latitude, longitude, radius = globeScale) => {
-    const phi = (latitude + 3) * (Math.PI / 180);
-    const theta = (longitude + 56) * (Math.PI / 180);
-    const x = radius * Math.cos(phi) * Math.sin(theta);
-    const y = radius * Math.sin(phi);
-    const z = radius * Math.cos(phi) * Math.cos(theta);
-    return [z, y, -x]; // Adjust for rotation
-  };
-
-  const pinPosition = to3DCoordinates(43.6683, -116.4436);
-
+  const [globeScale, setScale] = useState(3);
   const [hovered, setHovered] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [camera, setCamera] = useState(null);
@@ -146,14 +61,44 @@ const GlobeViewer = ({ props, modelPath }) => {
   const pinRef = useRef();
   const canvasRef = useRef();
 
-  const handlePointerOver = (event) => {
-    setHovered(true);
-    updateTooltipPosition(event);
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width <= 768) setScale(2.25);
+      else if (width <= 1024) setScale(2.5);
+      else setScale(3);
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  if (firstMaterial) {
+    firstMaterial.emissive = new THREE.Color(0x33b5e5);
+    firstMaterial.emissiveIntensity = 2;
+    firstMaterial.side = THREE.FrontSide;
+  }
+
+  const { ErrorBoundary, didCatch, error } = useErrorBoundary();
+
+  // FIXED Coordinate System
+  const to3DCoordinates = (latitude, longitude, radius = globeScale) => {
+    const phi = (90 - latitude) * (Math.PI / 180);
+    const theta = (longitude + 20) * (Math.PI / 20);   // ← Adjusted for your model
+
+    const x = radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+
+    return [z, y, -x];
   };
 
-  const handlePointerOut = () => {
-    setHovered(false);
-  };
+  // Hyderabad, Telangana, India
+  const pinPosition = to3DCoordinates(17.3850, 78.4867);
+
+  const handlePointerOver = () => setHovered(true);
+  const handlePointerOut = () => setHovered(false);
 
   const updateTooltipPosition = (event) => {
     if (!camera || !pinRef.current) return;
@@ -169,17 +114,13 @@ const GlobeViewer = ({ props, modelPath }) => {
   };
 
   return didCatch ? (
-    <div>{error.message}</div>
+    <div>Error: {error.message}</div>
   ) : (
     <div style={{ width: 400, height: 400, position: "relative" }}>
       <Canvas
         ref={canvasRef}
-        onCreated={({ camera }) => {
-          setCamera(camera);
-          camera.layers.enable(1); // Enable layer 1 for the camera
-        }}
-        fallback={<div>Sorry, no WebGL supported!</div>}
-        hdr
+          onCreated={({ camera: cam }) => setCamera(cam)}
+          fallback={<div>Sorry, no WebGL supported!</div>}
       >
         <ambientLight intensity={0.5} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
@@ -189,33 +130,24 @@ const GlobeViewer = ({ props, modelPath }) => {
           <mesh
             geometry={firstMesh.geometry}
             material={firstMaterial}
-            scale={[globeScale, globeScale, globeScale]}
-            layers={[0]} // Set globe to layer 0
-            renderOrder={0}
+              scale={[globeScale, globeScale, globeScale]}
           />
-          <Pin
+            {/* <Pin
             position={pinPosition}
             pinRef={pinRef}
             handlePointerOver={handlePointerOver}
             handlePointerOut={handlePointerOut}
             updateTooltipPosition={updateTooltipPosition}
-          />
+          /> */}
         </RotatingGroup>
 
         <EffectComposer>
-          <Bloom
-            luminanceThreshold={0.5}
-            luminanceSmoothing={0.3}
-            intensity={1}
-          />
+            <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.3} intensity={1} />
         </EffectComposer>
 
-        <OrbitControls
-          enableZoom={false}
-          maxPolarAngle={Math.PI}
-          minPolarAngle={0}
-        />
+          <OrbitControls enableZoom={false} />
       </Canvas>
+
       {hovered && (
         <div
           style={{
@@ -223,15 +155,16 @@ const GlobeViewer = ({ props, modelPath }) => {
             top: `${tooltipPosition.y}px`,
             left: `${tooltipPosition.x}px`,
             transform: "translate(-50%, -100%)",
-            background: "rgba(0, 0, 0, 0.7)",
+              background: "rgba(0, 0, 0, 0.85)",
             color: "white",
-            padding: "5px 10px",
-            borderRadius: "5px",
+              padding: "6px 12px",
+              borderRadius: "6px",
             fontSize: "14px",
             pointerEvents: "none",
+              zIndex: 100,
           }}
         >
-          Located in Star, Idaho
+            Hyderabad, Telangana, India
         </div>
       )}
     </div>
