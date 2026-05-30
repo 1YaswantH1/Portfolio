@@ -177,7 +177,7 @@ const App = () => {
       {/* ── ABOUT ── */}
       <Element name="About" className="section About" id="About">
         <div className="text">
-          <h1>👋 Hi, I'm Yaswanth!</h1>
+          <h1>Hi, I'm Yaswanth!</h1>
           <p>
             Passionate about{" "}
             <strong>full-stack development, AI, and data science</strong>, I
@@ -227,9 +227,7 @@ const App = () => {
             <br /><br />
             I have experience with <strong>Docker</strong> and{" "}
             <strong>Kubernetes</strong> for containerized deployment and
-            cloud-ready applications.
-            <br /><br />
-            I enjoy solving challenging problems and have completed{" "}
+            cloud-ready applications and I enjoy solving challenging problems and have completed{" "}
             <strong>300+ LeetCode problems</strong>.
             <br /><br />
             Explore more on my{" "}

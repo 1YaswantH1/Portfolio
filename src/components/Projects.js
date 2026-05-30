@@ -5,7 +5,7 @@ import ComboScene from "./ComboScene";
 const projectSlides = [
     {
         id: "Portfolio",
-        title: "Portfolio & Projects",
+        title: "Projects",
         description: (
             <>
                 Here are some of the projects I've worked on, showcasing my skills
